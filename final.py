@@ -31,141 +31,118 @@ from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
 
 
-#function to get data from file, prcoess it, and prepare it for a dataframe
-def getData():
-
-    #get from file
-    data = pd.read_csv('Data/train-data.csv')
-    test = pd.read_csv('Data/test-data.csv')
-
-    #drop the 'New_Price' and 'Unnamed:0' columns.
-    data = data.drop('New_Price', axis=1)
-    data = data.drop('Unnamed: 0', axis=1)
-    test = test.drop('New_Price', axis=1)
-    test = test.drop('Unnamed: 0', axis=1)
-
-    #drop na 
-    data = data.dropna(how='any')
-    test = test.dropna(how='any')
-
-
-    #shorten the name of the cars
-    data['Cars'] = data['Name'].str.split(" ").str[0] + ' ' +data['Name'].str.split(" ").str[1]
-    test['Cars'] = test['Name'].str.split(" ").str[0] + ' ' +test['Name'].str.split(" ").str[1]
-
-    #drop remaining missing
-    test.drop(test[test['Cars'].isin(['Toyota Land', 'Hindustan Motors', 'Fiat Abarth', 'Nissan 370Z', 
-                                      'Isuzu MU', 'Bentley Flying', 'OpelCorsa 1.4Gsi'])].index, inplace = True)
-                                      
-
-    #orgainize columns
-    data['Mileage'] = data['Mileage'].str.replace(' kmpl','')
-    data['Mileage'] = data['Mileage'].str.replace(' km/kg','')
-    data['Engine'] = data['Engine'].str.replace(' CC','')
-    data['Power'] = data['Power'].str.replace('null bhp','112')
-    data['Power'] = data['Power'].str.replace(' bhp','')
-
-    test['Mileage'] = test['Mileage'].str.replace(' kmpl','')
-    test['Mileage'] = test['Mileage'].str.replace(' km/kg','')
-    test['Engine'] = test['Engine'].str.replace(' CC','')
-    test['Power'] = test['Power'].str.replace('null bhp','112')
-    test['Power'] = test['Power'].str.replace(' bhp','')
-
-    #convert to numerical values
-    data['Mileage'] = data['Mileage'].astype(float)
-    data['Mileage'] = data['Mileage'].astype(float)
-    data['Engine'] = data['Engine'].astype(float)
-    data['Power'] = data['Power'].astype(float)
-
-    test['Mileage'] = test['Mileage'].astype(float)
-    test['Mileage'] = test['Mileage'].astype(float)
-    test['Engine'] = test['Engine'].astype(float)
-    test['Power'] = test['Power'].astype(float)
+def process_data():
+    """
+    Reads in train and test data from files, processes it, and returns it as two dataframes.
     
-    #for col in data:
-    #    print(data[col].unique())
+    Returns:
+        train_data (pandas.DataFrame): Processed training data.
+        test_data (pandas.DataFrame): Processed test data.
+    """
+    # Read in data from files
+    train_data = pd.read_csv('Data/train-data.csv')
+    test_data = pd.read_csv('Data/test-data.csv')
 
+    # Drop unnecessary columns
+    train_data = train_data.drop(['New_Price', 'Unnamed: 0'], axis=1)
+    test_data = test_data.drop(['New_Price', 'Unnamed: 0'], axis=1)
 
-    return data,test
+    # Drop rows with missing values
+    train_data = train_data.dropna(how='any')
+    test_data = test_data.dropna(how='any')
 
-#funtion to take prcoessed data and put into dataframe for model to use. Also Label encodes dataframe
-def makeDataframes(data,test,choice):
+    # Shorten names of cars
+    train_data['Cars'] = train_data['Name'].str.split(" ").str[0] + ' ' + train_data['Name'].str.split(" ").str[1]
+    test_data['Cars'] = test_data['Name'].str.split(" ").str[0] + ' ' + test_data['Name'].str.split(" ").str[1]
 
-    ftrain = ['Cars', 'Location', 'Year', 'Kilometers_Driven', 'Fuel_Type', 'Transmission', 'Owner_Type', 'Mileage', 'Engine', 'Power', 'Seats','Price']
+    # Drop remaining missing rows
+    test_data.drop(test_data[test_data['Cars'].isin(['Toyota Land', 'Hindustan Motors', 'Fiat Abarth', 
+                                                     'Nissan 370Z', 'Isuzu MU', 'Bentley Flying', 'OpelCorsa 1.4Gsi'])].index, inplace=True)
+
+    # Clean up columns
+    train_data['Mileage'] = train_data['Mileage'].str.replace(' kmpl', '')
+    train_data['Mileage'] = train_data['Mileage'].str.replace(' km/kg', '')
+    train_data['Engine'] = train_data['Engine'].str.replace(' CC', '')
+    train_data['Power'] = train_data['Power'].str.replace('null bhp', '112')
+    train_data['Power'] = train_data['Power'].str.replace(' bhp', '')
+
+    test_data['Mileage'] = test_data['Mileage'].str.replace(' kmpl', '')
+    test_data['Mileage'] = test_data['Mileage'].str.replace(' km/kg', '')
+    test_data['Engine'] = test_data['Engine'].str.replace(' CC', '')
+    test_data['Power'] = test_data['Power'].str.replace('null bhp', '112')
+    test_data['Power'] = test_data['Power'].str.replace(' bhp', '')
+
+    # Convert to numerical values
+    train_data['Mileage'] = train_data['Mileage'].astype(float)
+    train_data['Engine'] = train_data['Engine'].astype(float)
+    train_data['Power'] = train_data['Power'].astype(float)
+
+    test_data['Mileage'] = test_data['Mileage'].astype(float)
+    test_data['Engine'] = test_data['Engine'].astype(float)
+    train_data['Power'] = train_data['Power'].astype(float)
+
+    test_data['Mileage'] = test_data['Mileage'].astype(float)
+    test_data['Engine'] = test_data['Engine'].astype(float)
+    test_data['Power'] = test_data['Power'].astype(float)
     
-    #features (one without price for test data)
+    return train_data, test_data
+
+
+def make_dataframes(df_train, df_test, choice):
+    f_train = ['Cars', 'Location', 'Year', 'Kilometers_Driven', 'Fuel_Type', 'Transmission', 'Owner_Type', 'Mileage', 'Engine', 'Power', 'Seats','Price']
+    
+    # features (one without price for test data)
     feature = ['Cars', 'Location', 'Year', 'Kilometers_Driven', 'Fuel_Type', 'Transmission', 'Owner_Type', 'Mileage', 'Engine', 'Power', 'Seats','Price']
-    feature1 = ['Cars', 'Location', 'Year', 'Kilometers_Driven', 'Fuel_Type', 'Transmission', 'Owner_Type', 'Mileage', 'Engine', 'Power', 'Seats']
+    feature_no_price = ['Cars', 'Location', 'Year', 'Kilometers_Driven', 'Fuel_Type', 'Transmission', 'Owner_Type', 'Mileage', 'Engine', 'Power', 'Seats']
 
-    print ("\n\test data:\n ",test)
+    print("\n\nTest data:\n", df_test)
     
-    #create dataframe from data 
-    data = pd.DataFrame(data, columns=feature)
-    test = pd.DataFrame(test, columns=feature1)
+    # create dataframes from data
+    df_train = pd.DataFrame(df_train, columns=feature)
+    df_test = pd.DataFrame(df_test, columns=feature_no_price)
     
-    print("\n\n Dataframe test data: \n", test)
+    print("\n\nDataframe test data:\n", df_test)
     
-    #for col in data:
-    #    print(data[col].unique())
-
-    #make copy
-    df_train=copy.deepcopy(data)
-    df_test=copy.deepcopy(test)
+    # make copy
+    df_train_copy = copy.deepcopy(df_train)
+    df_test_copy = copy.deepcopy(df_test)
     
-    #print("copy: \n", df_test)
-
-    #drop irrelevant features
-    cols=np.array(data.columns[data.dtypes != object])
-    for i in df_train.columns:
+    # drop irrelevant features
+    cols = np.array(df_train.columns[df_train.dtypes != object])
+    for i in df_train_copy.columns:
         if i not in cols:
-            df_train[i]=df_train[i].map(str)
-            df_test[i]=df_test[i].map(str)
-    df_train.drop(columns=cols,inplace=True)
-    df_test.drop(columns=np.delete(cols,len(cols)-1),inplace=True)
+            df_train_copy[i] = df_train_copy[i].map(str)
+            df_test_copy[i] = df_test_copy[i].map(str)
+    df_train_copy.drop(columns=cols, inplace=True)
+    df_test_copy.drop(columns=np.delete(cols, len(cols) - 1), inplace=True)
 
-    #print("after dropping: \n", df_test)
-
-    #make dictionary so we can encode labels 
-    cols=np.array(data.columns[data.dtypes != object])
+    # make dictionary so we can encode labels
+    cols = np.array(df_train.columns[df_train.dtypes != object])
     d = defaultdict(LabelEncoder)
     
-    print("catagories for dictionary: \n", df_test)
+    print("Categories for dictionary:\n", df_test_copy)
 
-    #encode catagorical labels with the dictionaly
-    df_train = df_train.apply(lambda x: d[x.name].fit_transform(x))
-    df_test = df_test.apply(lambda x: d[x.name].transform(x))
-    df_train[cols] = data[cols]
-    df_test[np.delete(cols,len(cols)-1)]=test[np.delete(cols,len(cols)-1)]
+    # encode categorical labels with the dictionary
+    df_train_copy = df_train_copy.apply(lambda x: d[x.name].fit_transform(x))
+    df_test_copy = df_test_copy.apply(lambda x: d[x.name].transform(x))
+    df_train_copy[cols] = df_train[cols]
+    df_test_copy[np.delete(cols, len(cols) - 1)] = df_test[np.delete(cols, len(cols) - 1)]
     
-    print("after encoding: \n", df_test)
+    print("After encoding:\n", df_test_copy)
 
-    #if getting training
+    # if getting training
     if choice == 0:
-        data2 = df_train[ftrain]
+        data2 = df_train_copy[f_train]
         X = data2.drop(columns=['Price']).values
         y0 = data2['Price'].values
         lab_enc = preprocessing.LabelEncoder()
         y = lab_enc.fit_transform(y0)
         return X, y             
         
-    #if just making a prediction
-    elif choice ==1:
-        data2 = df_test[feature1]
-
+    # if just making a prediction
+    elif choice == 1:
+        data2 = df_test_copy[feature_no_price]
         return data2
-    
-#function to make graph to display accuracy of prediction prices
-def Graph_prediction(n, y_actual, y_predicted):
-    y = y_actual
-    y_total = y_predicted
-    number = n
-    aa=[x for x in range(number)]
-    plt.figure(figsize=(25,10)) 
-    plt.plot(aa, y[:number], marker='.', label="actual", color="red")
-    plt.plot(aa, y_total[:number], 'b', label="prediction")
-    plt.xlabel('Price prediction of first {} used cars'.format(number), size=15)
-    plt.legend(fontsize=15)
-    plt.show()
     
 #makes a GBR model with given feature and labled data. data needs to be in a Dataframe and already pre-procressed
 def makeModel(X, y):
@@ -184,8 +161,6 @@ def makeModel(X, y):
     print('Accuracy on Traing set   : ', model.score(X_train,y_train))
     print('Accuracy on Testing set  : ', model.score(X_test,y_test))
     
-    #graph model
-    Graph_prediction(150, y_test, y_pred)
     return model
     
 #makes a prediction for a price given predictor model and test feature data
@@ -202,10 +177,10 @@ def makePrediction(model, x):
 #-----create model as a global variable-----
 
 #get train and test data
-Data, test = getData()
+Data, test = process_data()
 
 #turn training/testing into X featrues and y lables
-X, y = makeDataframes(Data,test, 0)
+X, y = make_dataframes(Data,test, 0)
     #   ['Cars', 'Location', 'Year', 'KM', 'Fuel', 'Trans', 'Owner_#  MPG, 'Engine CC', 'HP', 'Seats','Price']
 
 #create model from training data
@@ -299,7 +274,7 @@ class MyWindow:
         print("got: ", userInput)
         
         #make dataframes from input
-        user_dataframe = makeDataframes(Data, userInput,1)
+        user_dataframe = make_dataframes(Data, userInput,1)
         
         #make prediction
         y_prediction = makePrediction(model, user_dataframe)
