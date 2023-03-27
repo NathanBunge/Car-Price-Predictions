@@ -201,8 +201,13 @@ print(testing)
 #-----create window for UI----
 from tkinter import *
 from tkinter.ttk import Combobox
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
 class MyWindow:
     def __init__(self, win):
+        self.win = win
+        self.previous_prices = []
     
         #create lables for window
         self.lbl1=Label(win, text='Car name')
@@ -261,10 +266,58 @@ class MyWindow:
         self.prediction.place(x=250, y=700)
         
         #create button to predict
-        self.b1=Button(win, text='Predict', command=self.predict)
+        self.b1=Button(win, text='Predict', command=self.show_graph)
         self.b1.place(x=100, y=600)
 
+
+    def show_graph(self):
+        # create data for line graph
+        kms = [0, 25000, 50000, 70000, 100000, 125000, 150000, 175000, 200000]
+        prices = self.get_yearly_prices(kms)
+
+        print(prices)
+
+        # create figure and axis for line graph
+        fig, ax1 = plt.subplots(figsize=(8, 4))
+        ax1.set_xlabel('Odometer (km)')
+        ax1.set_ylabel('Price')
+        if (len(self.previous_prices) >0):
+            ax1.plot(kms, self.previous_prices, color='red', label='Previous Prices')
+        ax1.plot(kms, prices, color='blue', label='Current Prices')
+        ax1.legend(loc='upper right')
+
+        # create canvas to display line graph
+        canvas = FigureCanvasTkAgg(fig, master=self.win)
+        canvas.draw()
+
+        # add canvas to window
+        canvas.get_tk_widget().place(x=500, y=100)
+
+        #update previous 
+        self.previous_prices = prices
+
+        # add the single predicted result
+        self.predict()
+
+
     #function that is called when predict button is clicked. Gets preice predidction
+    def predict_km(self, km):
+        
+        #parse user input
+        userInput = [[self.car.get(), self.location.get(), int(self.year.get()), int(km), self.gas.get(), self.trans.get(), self.owner.get(), float(self.mpg.get()),  
+        float(self.engine.get()), float(self.hp.get()), float(self.seats.get())]]
+        
+        print("got: ", userInput)
+        
+        #make dataframes from input
+        user_dataframe = make_dataframes(Data, userInput,1)
+        
+        #make prediction
+        y_prediction = makePrediction(model, user_dataframe)
+
+        return y_prediction[0]
+    
+
     def predict(self):
         
         #parse user input
@@ -285,13 +338,17 @@ class MyWindow:
         self.prediction.delete(0, 'end')
         self.prediction.insert(END, ("$" + str(round(y_prediction[0] ,2))))
         
-        
+    def get_yearly_prices(self, km):
+        prices = []
+        for k in km:
+            prices.append(self.predict_km(k))
+        return prices
         
 #init window and run till closed
 window=Tk()
 mywin=MyWindow(window)
 window.title('Hello Python')
-window.geometry("500x800+10+10")
+window.geometry("1500x800+10+10")
 window.mainloop()
 
 
